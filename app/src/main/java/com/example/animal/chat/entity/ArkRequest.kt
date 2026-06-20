@@ -6,13 +6,17 @@ import com.google.gson.annotations.SerializedName
 /**
  * 火山方舟 responses 接口完整请求体实体。
  *
- * 结构完全匹配官方 curl 示例：
+ * 结构（经真实接口联调校正）：
  * ```json
  * {
  *   "model": "deepseek-v4-flash-260425",
  *   "stream": true,
- *   "tools": [ { "type": "web_search", "web_search": { "max_keyword": 3 } } ],
- *   "input": [ { "role": "user", "content": [ { "type": "input_text", "text": "..." } ] } ]
+ *   "tools": [ { "type": "web_search" } ],
+ *   "input": [
+ *     { "role": "user", "content": [ { "type": "input_text", "text": "人设..." } ] },
+ *     { "type": "message", "role": "assistant", "status": "completed",
+ *       "content": [ { "type": "output_text", "text": "历史回复..." } ] }
+ *   ]
  * }
  * ```
  *
