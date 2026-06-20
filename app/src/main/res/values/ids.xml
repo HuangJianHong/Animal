@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 用于在 ImageView 上记录上一次加载信息，实现「防重复加载」 -->
+    <item name="image_tag_last_url" type="id" />
+    <item name="image_tag_last_time" type="id" />
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Animal</string>
+    <string name="greeting">网络框架已就绪，点击按钮发起示例请求</string>
+    <string name="btn_request">发起示例请求</string>
+</resources>
