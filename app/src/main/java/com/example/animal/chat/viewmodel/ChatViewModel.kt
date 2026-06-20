@@ -12,9 +12,11 @@ import com.example.animal.chat.model.ChatRepository
 import com.example.animal.net.exception.ExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -108,6 +110,11 @@ class ChatViewModel(private val animal: Animal) : ViewModel() {
 
     /**
      * 启动 SSE 流式请求并将增量文本渲染到指定 AI 消息。
+     *
+     * 流畅度关键：把「网络收字」与「UI 吐字」解耦——
+     * - SSE 的增量文本是按网络分块到达的（一次可能来好几个字、再停顿），直接渲染会一卡一卡；
+     * - 这里先把收到的字符放入 [pending] 缓冲区，再由独立的「打字机协程」按固定节奏匀速逐字吐出，
+     *   积压越多每帧吐字越多，兼顾长文本速度与短文本的逐字打字感，视觉上平滑自然。
      */
     private fun startStream(aiMessageId: Long) {
         // 取消上一个未结束的流
@@ -120,37 +127,69 @@ class ChatViewModel(private val animal: Animal) : ViewModel() {
         val request = buildRequest()
 
         streamJob = viewModelScope.launch {
-            val builder = StringBuilder()
-            try {
-                _loading.value = true
-                repository.streamChat(request).collect { delta ->
-                    builder.append(delta)
-                    val current = builder.toString()
-                    _typingText.value = current
-                    // 实时刷新该 AI 消息内容，实现打字机效果
-                    updateMessage(aiMessageId) {
-                        it.copy(content = current, status = ChatMessage.Status.STREAMING)
+            val displayed = StringBuilder()   // 已渲染到 UI 的文本
+            val pending = StringBuilder()     // 已收到、待渲染的缓冲文本
+            var streamFinished = false        // 网络流是否读取完毕
+            var streamError: Throwable? = null
+            _loading.value = true
+
+            // 打字机协程：按固定节奏匀速把 pending 中的字符吐到 UI
+            val typer = launch {
+                while (isActive) {
+                    if (pending.isNotEmpty()) {
+                        // 积压越多每帧吐字越多（1~MAX_CHARS_PER_FRAME），避免长文本等待过久
+                        val step = (pending.length / 10)
+                            .coerceIn(1, MAX_CHARS_PER_FRAME)
+                            .coerceAtMost(pending.length)
+                        displayed.append(pending, 0, step)
+                        pending.delete(0, step)
+                        val cur = displayed.toString()
+                        _typingText.value = cur
+                        updateMessage(aiMessageId) {
+                            it.copy(content = cur, status = ChatMessage.Status.STREAMING)
+                        }
+                        delay(TYPING_FRAME_MS)
+                    } else if (streamFinished) {
+                        break
+                    } else {
+                        // 缓冲为空但流未结束：等待下一段网络数据
+                        delay(TYPING_FRAME_MS)
                     }
                 }
-                // 流正常结束，标记完成
-                val finalText = builder.toString().ifEmpty { "（暂时没有想到要说什么…）" }
-                updateMessage(aiMessageId) {
-                    it.copy(content = finalText, status = ChatMessage.Status.SUCCESS)
+            }
+
+            try {
+                repository.streamChat(request).collect { delta ->
+                    // 只负责把网络增量塞进缓冲，渲染节奏交给打字机协程
+                    pending.append(delta)
                 }
+                streamFinished = true
             } catch (ce: CancellationException) {
-                // 页面销毁/主动取消，不当作错误，直接抛出结束协程
+                // 页面销毁/主动取消：随父协程取消 typer，直接结束
                 throw ce
             } catch (e: Throwable) {
+                streamError = e
+                streamFinished = true
+            }
+
+            // 等打字机把剩余缓冲全部吐完，保证最终文本完整
+            typer.join()
+
+            if (streamError != null) {
                 // 统一异常转换（无网络/超时/401/429/500 等）
-                val apiException = ExceptionHandler.handle(e)
+                val apiException = ExceptionHandler.handle(streamError!!)
                 updateMessage(aiMessageId) {
                     it.copy(content = apiException.errorMsg, status = ChatMessage.Status.FAILED)
                 }
                 _error.value = apiException.errorMsg
-            } finally {
-                _loading.value = false
-                _typingText.value = ""
+            } else {
+                val finalText = displayed.toString().ifEmpty { "（暂时没有想到要说什么…）" }
+                updateMessage(aiMessageId) {
+                    it.copy(content = finalText, status = ChatMessage.Status.SUCCESS)
+                }
             }
+            _loading.value = false
+            _typingText.value = ""
         }
     }
 
@@ -207,6 +246,14 @@ class ChatViewModel(private val animal: Animal) : ViewModel() {
         super.onCleared()
         streamJob?.cancel()
         streamJob = null
+    }
+
+    companion object {
+        /** 打字机每帧间隔（毫秒），约 60fps，越小吐字越快 */
+        private const val TYPING_FRAME_MS = 16L
+
+        /** 打字机每帧最多吐字数：缓冲积压越多越接近此上限，避免长文本等待过久 */
+        private const val MAX_CHARS_PER_FRAME = 5
     }
 
     /**

@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.animal.R
 import com.example.animal.animal.entity.Animal
 import com.example.animal.chat.viewmodel.ChatViewModel
@@ -39,6 +40,9 @@ class ChatActivity : AppCompatActivity() {
     private val chatAdapter by lazy {
         ChatAdapter(onResend = { messageId -> viewModel.resend(messageId) })
     }
+
+    /** 上一次消息数量，用于区分「新增消息」与「流式内容更新」 */
+    private var lastMessageCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,11 +74,11 @@ class ChatActivity : AppCompatActivity() {
 
     /** 消息列表 */
     private fun initRecyclerView() {
-        binding.rvMessages.layoutManager = LinearLayoutManager(this).apply {
-            // 新消息贴底显示
-            stackFromEnd = true
-        }
+        // 消息从顶部自然向下排列（不足一屏时贴顶，避免顶部出现大片空白）
+        binding.rvMessages.layoutManager = LinearLayoutManager(this)
         binding.rvMessages.adapter = chatAdapter
+        // 关闭默认变更动画：打字机高频局部刷新时，淡入/位移动画会造成闪烁与卡顿
+        binding.rvMessages.itemAnimator = null
     }
 
     /** 底部输入区：空文本置灰发送按钮 + 清空 + 发送 */
@@ -115,10 +119,14 @@ class ChatActivity : AppCompatActivity() {
                 // 消息列表
                 launch {
                     viewModel.messages.collect { list ->
+                        // 是否新增了消息（新一轮发送/回复）——新增时强制贴底；
+                        // 否则为流式内容更新，仅当用户当前停留在底部时才自动跟随，
+                        // 避免用户上翻历史时被强制拉回。
+                        val isNewMessage = list.size != lastMessageCount
+                        val shouldStick = isNewMessage || isAtBottom()
+                        lastMessageCount = list.size
                         chatAdapter.submitList(list) {
-                            if (list.isNotEmpty()) {
-                                binding.rvMessages.scrollToPosition(list.size - 1)
-                            }
+                            if (list.isNotEmpty() && shouldStick) scrollToBottom()
                         }
                     }
                 }
@@ -133,6 +141,23 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /** 列表当前是否停留在底部（或内容不足一屏），用于决定流式时是否自动跟随 */
+    private fun isAtBottom(): Boolean {
+        val lm = binding.rvMessages.layoutManager as? LinearLayoutManager ?: return true
+        val last = lm.findLastVisibleItemPosition()
+        return last == RecyclerView.NO_POSITION || last >= chatAdapter.itemCount - 1
+    }
+
+    /** 滚动到最后一条消息，贴底显示最新内容（含正在流式增长的长文本底部） */
+    private fun scrollToBottom() {
+        val last = chatAdapter.itemCount - 1
+        if (last < 0) return
+        val lm = binding.rvMessages.layoutManager as? LinearLayoutManager ?: return
+        // 用一个足够大的负偏移，把最后一项（即便高度超过一屏）的底部对齐到列表底部，
+        // 始终展示最新文字；RecyclerView 会自动 clamp，不会过度滚动。
+        lm.scrollToPositionWithOffset(last, -BIG_SCROLL_OFFSET)
     }
 
     /** 统一异常弹窗提示（无网络/超时/401/429/500 等） */
@@ -151,5 +176,10 @@ class ChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         viewModel.release()
         super.onDestroy()
+    }
+
+    companion object {
+        /** 贴底滚动用的大偏移量：保证超长消息底部对齐列表底部 */
+        private const val BIG_SCROLL_OFFSET = 100_000
     }
 }
