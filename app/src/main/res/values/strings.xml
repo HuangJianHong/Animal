@@ -2,4 +2,14 @@
     <string name="app_name">Animal</string>
     <string name="greeting">网络框架已就绪，点击按钮发起示例请求</string>
     <string name="btn_request">发起示例请求</string>
+
+    <!-- 小动物 AI 聊天模块 -->
+    <string name="animal_main_title">选择一只小动物聊天</string>
+    <string name="chat_input_hint">和我聊点什么吧~</string>
+    <string name="chat_send">发送</string>
+    <string name="chat_clear">清空</string>
+    <string name="chat_resend">点击重发</string>
+    <string name="chat_typing">对方正在输入…</string>
+    <string name="chat_error_title">提示</string>
+    <string name="chat_dialog_confirm">知道了</string>
 </resources>

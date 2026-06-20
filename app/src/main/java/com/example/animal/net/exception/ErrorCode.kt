@@ -12,7 +12,10 @@ object ErrorCode {
     const val SUCCESS = 200
 
     // ============================ HTTP 标准错误码 ============================
-    /** token 过期 / 未登录 */
+    /** 请求参数错误 */
+    const val BAD_REQUEST = 400
+
+    /** token 过期 / 未登录 / 鉴权失败 */
     const val UNAUTHORIZED = 401
 
     /** 无权限 */
@@ -20,6 +23,9 @@ object ErrorCode {
 
     /** 资源不存在 */
     const val NOT_FOUND = 404
+
+    /** 接口限流（请求过于频繁） */
+    const val TOO_MANY_REQUESTS = 429
 
     /** 服务器内部错误 */
     const val SERVER_ERROR = 500
@@ -50,9 +56,11 @@ object ErrorCode {
      * 根据错误码返回默认友好提示文案。
      */
     fun getMessage(code: Int): String = when (code) {
-        UNAUTHORIZED -> "登录已过期，请重新登录"
+        BAD_REQUEST -> "请求参数有误，请稍后重试"
+        UNAUTHORIZED -> "鉴权失败，请检查 API Key"
         FORBIDDEN -> "暂无访问权限"
         NOT_FOUND -> "请求的资源不存在"
+        TOO_MANY_REQUESTS -> "请求过于频繁，请稍后再试"
         SERVER_ERROR -> "服务器开小差了，请稍后重试"
         NO_NETWORK -> "网络未连接，请检查网络设置"
         TIMEOUT -> "请求超时，请稍后重试"

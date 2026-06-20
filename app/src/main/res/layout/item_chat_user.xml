@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 用户消息（右侧气泡 + 右侧头像） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="end"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="6dp">
+
+    <TextView
+        android:id="@+id/tv_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="48dp"
+        android:background="@drawable/bg_bubble_user"
+        android:lineSpacingExtra="2dp"
+        android:maxWidth="260dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="9dp"
+        android:textColor="#1A1A1A"
+        android:textSize="15sp"
+        tools:text="你好呀" />
+
+    <ImageView
+        android:id="@+id/iv_avatar"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:contentDescription="@string/app_name" />
+
+</LinearLayout>

@@ -25,6 +25,16 @@ object NetConfig {
     /** 是否为 Debug 环境（来自 BuildConfig.DEBUG） */
     val isDebug: Boolean = BuildConfig.DEBUG
 
+    // ============================ 火山方舟（Ark）大模型常量 ============================
+    /** 火山方舟 API Key（鉴权使用，请求头 Authorization: Bearer {ARK_API_KEY}） */
+    const val ARK_API_KEY = "ark-43370095-7ded-45a5-9fb6-d7fd10ec9c03-acfea"
+
+    /** 固定模型 ID */
+    const val ARK_MODEL_ID = "deepseek-v4-flash-260425"
+
+    /** 火山方舟 responses 接口 BaseUrl（结尾保留斜杠，供 Retrofit 拼接 responses） */
+    const val ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/"
+
     // ============================ 动态超时（秒），支持运行时修改 ============================
     @Volatile
     var connectTimeout: Long = NetConstants.DEFAULT_CONNECT_TIMEOUT

@@ -63,9 +63,18 @@ class LogInterceptor : Interceptor {
         respSb.append("│ ${response.code} ${response.message} (${tookMs}ms) ${response.request.url}\n")
 
         // 响应体（peek 读取，避免消费掉真正的流）
-        if (response.promisesBody()) {
-            val peekBody = response.peekBody(1024 * 1024) // 最多 1MB
-            respSb.append("│ Body: ${desensitizeBody(peekBody.string())}\n")
+        val contentType = response.body?.contentType()?.toString().orEmpty()
+        val isEventStream = contentType.contains("text/event-stream", ignoreCase = true)
+        when {
+            // SSE 流式响应：peek 会阻塞直到流结束，破坏实时性，这里不读取流体，
+            // 流式内容由 ChatRepository 逐行打印日志
+            isEventStream ->
+                respSb.append("│ Body: <SSE 流式响应，分段日志见 ArkSSE 标签>\n")
+
+            response.promisesBody() -> {
+                val peekBody = response.peekBody(1024 * 1024) // 最多 1MB
+                respSb.append("│ Body: ${desensitizeBody(peekBody.string())}\n")
+            }
         }
         respSb.append("└──────────────────────────")
         Log.d(tag, respSb.toString())

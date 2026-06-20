@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 小动物列表 Item：头像 + 名称 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    android:background="#FFFFFF"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="14dp">
+
+    <ImageView
+        android:id="@+id/iv_avatar"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:contentDescription="@string/animal_main_title" />
+
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:textColor="#222222"
+        android:textSize="16sp"
+        tools:text="橘猫·圆滚滚"
+        xmlns:tools="http://schemas.android.com/tools" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="去聊天 ›"
+        android:textColor="#07C160"
+        android:textSize="14sp" />
+
+</LinearLayout>

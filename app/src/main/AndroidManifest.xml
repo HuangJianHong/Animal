@@ -2,15 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 网络请求所需权限 -->
+    <!-- 本模块仅需网络权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- 相册/媒体图片读取权限：Android 13+ 使用细分媒体权限 -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:name=".App"
@@ -24,17 +18,32 @@
         android:theme="@style/Theme.Animal"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <!-- 首页：小动物列表（应用入口） -->
         <activity
-            android:name=".MainActivity"
+            android:name=".animal.view.AnimalMainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Animal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 聊天页 -->
+        <activity
+            android:name=".chat.view.ChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Animal"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 原网络框架演示页（保留，非入口） -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Animal" />
     </application>
 
 </manifest>
