@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release 签名（敏感信息，禁止提交）
+/keystore.properties
+/animalks
+*.jks
+*.keystore

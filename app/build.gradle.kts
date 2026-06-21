@@ -1,9 +1,23 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     // Glide 注解处理器需要 kapt
     alias(libs.plugins.kotlin.kapt)
 }
+
+// 读取 Release 签名配置：敏感信息放在 keystore.properties（不纳入版本控制），仅存本地。
+// 文件不存在或未填密码时，自动跳过正式签名（仍可编译出未签名 release 用于验证混淆）。
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        FileInputStream(keystorePropertiesFile).use { load(it) }
+    }
+}
+val hasReleaseSigning = keystorePropertiesFile.exists() &&
+        !keystoreProperties.getProperty("storePassword").isNullOrEmpty()
 
 android {
     namespace = "com.example.animal"
@@ -20,13 +34,38 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Release 正式签名（animalks）：从 keystore.properties 读取，缺失时不设置
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = rootProject.file(
+                    keystoreProperties.getProperty("storeFile", "animalks")
+                )
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 开启代码混淆 + 压缩（R8）。资源压缩默认关闭，避免误删资源；
+            // 如需进一步减包可改 isShrinkResources = true 并自行验证。
+            isMinifyEnabled = true
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 仅当本地存在 keystore.properties 且填写了密码时，启用正式签名
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+        debug {
+            // 调试包不混淆，沿用默认调试签名
+            isMinifyEnabled = false
         }
     }
     compileOptions {
